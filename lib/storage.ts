@@ -79,6 +79,34 @@ export function markCookedToday(): number {
   } catch { return 1; }
 }
 
+// ── Recent recipes ─────────────────────────────────────────────────────────
+
+const RECENT_KEY = "cookle_recent_v1";
+
+export function getRecentRecipes(): ResolvedRecipe[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); }
+  catch { return []; }
+}
+
+export function addRecentRecipe(recipe: ResolvedRecipe): void {
+  try {
+    const recent = getRecentRecipes().filter(r => r.name !== recipe.name);
+    localStorage.setItem(RECENT_KEY, JSON.stringify([recipe, ...recent].slice(0, 3)));
+  } catch {}
+}
+
+// ── Dark mode preference ───────────────────────────────────────────────────
+
+export function getDarkMode(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem("cookle_dark") === "1";
+}
+
+export function saveDarkMode(dark: boolean): void {
+  try { localStorage.setItem("cookle_dark", dark ? "1" : "0"); } catch {}
+}
+
 // ── Surprise Me rotation ───────────────────────────────────────────────────
 
 function shuffle(n: number): number[] {

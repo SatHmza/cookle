@@ -1,7 +1,25 @@
 @import "tailwindcss";
 
+/* Class-based dark mode — toggled by adding .dark to <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --font-geist: "Geist", system-ui, sans-serif;
+  --page-bg:      #FDF8F3;
+  --card-bg:      #FFFFFF;
+  --border-col:   #fed7aa; /* orange-100 */
+  --neutral-bdr:  #e7e5e4; /* stone-200 */
+  --subtle-bg:    #fafaf9; /* stone-50  */
+  --orange-tint:  #fff7ed; /* orange-50 */
+}
+
+.dark {
+  --page-bg:      #1C1410;
+  --card-bg:      #231A14;
+  --border-col:   #3D2A1E;
+  --neutral-bdr:  #3D2A1E;
+  --subtle-bg:    #1A100B;
+  --orange-tint:  #2A1A0E;
 }
 
 @theme inline {
@@ -12,7 +30,7 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: #FDF8F3;
+  background-color: var(--page-bg);
 }
 
 /* ── Loading screen ─────────────────────────────────────── */
