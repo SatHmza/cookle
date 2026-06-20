@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { matchRecipe } from "@/lib/recipes";
 import type { ResolvedRecipe } from "@/lib/recipes";
 
@@ -9,21 +9,6 @@ type Recipe = ResolvedRecipe;
 const DIETARY_OPTIONS = ["None", "Vegetarian", "Vegan", "Gluten-free", "Keto", "Dairy-free", "Halal"];
 const TIME_OPTIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "No limit"];
 
-const LOADING_MESSAGES = [
-  "🔍 Inspecting your fridge...",
-  "🧌 The kitchen gremlin is thinking...",
-  "🥄 Stirring up ideas...",
-  "🔥 Getting chaotic in the kitchen...",
-  "✨ Almost there...",
-  "🍳 Taste-testing in our heads...",
-];
-
-const DIFFICULTY_COLORS: Record<string, string> = {
-  Easy: "bg-green-100 text-green-700",
-  Medium: "bg-yellow-100 text-yellow-700",
-  Hard: "bg-red-100 text-red-700",
-};
-
 export default function Home() {
   const [ingredients, setIngredients] = useState("");
   const [dietary, setDietary] = useState("None");
@@ -31,248 +16,215 @@ export default function Home() {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState(LOADING_MESSAGES[0]);
-  const [msgIndex, setMsgIndex] = useState(0);
-  const recipeRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!loading) return;
-    const interval = setInterval(() => {
-      setMsgIndex((i) => {
-        const next = (i + 1) % LOADING_MESSAGES.length;
-        setLoadingMessage(LOADING_MESSAGES[next]);
-        return next;
-      });
-    }, 1600);
-    return () => clearInterval(interval);
-  }, [loading]);
-
-  useEffect(() => {
-    if (recipe) {
-      setTimeout(() => recipeRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-    }
-  }, [recipe]);
 
   async function generateRecipe() {
     if (!ingredients.trim()) {
-      setError("Tell me what's in your fridge first!");
+      setError("Add some ingredients first.");
       return;
     }
     setError(null);
     setLoading(true);
-    setMsgIndex(0);
-    setLoadingMessage(LOADING_MESSAGES[0]);
-
-    // Brief gremlin animation delay
-    await new Promise((r) => setTimeout(r, 1200));
-
+    await new Promise((r) => setTimeout(r, 700));
     try {
-      const result = matchRecipe(ingredients, dietary, timeLimit);
-      setRecipe(result);
+      setRecipe(matchRecipe(ingredients, dietary, timeLimit));
     } catch {
-      setError("The gremlin got confused. Try again!");
+      setError("Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen pb-20">
-      {/* Header */}
-      <header className="bg-orange-500 text-white px-6 py-5 shadow-md">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3">
-            <span className="text-4xl">🧌</span>
-            <div>
-              <h1 className="text-3xl font-black tracking-tight">Cookle</h1>
-              <p className="text-orange-100 text-sm font-medium">
-                A kitchen gremlin lives in your fridge. Let it decide.
-              </p>
+    <main className="min-h-screen bg-white">
+      <div className="max-w-lg mx-auto px-6 py-14">
+
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            🧌 Cookle
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Tell it what you have. It tells you what to cook.
+          </p>
+        </div>
+
+        {/* Ingredients */}
+        <div className="mb-5">
+          <label className="block text-xs font-semibold tracking-widest uppercase text-gray-400 mb-2">
+            What's in your fridge?
+          </label>
+          <textarea
+            rows={3}
+            value={ingredients}
+            onChange={(e) => setIngredients(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                generateRecipe();
+              }
+            }}
+            placeholder="chicken, garlic, tomatoes, pasta, an egg..."
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-gray-900 resize-none transition-colors"
+          />
+        </div>
+
+        {/* Diet + Time */}
+        <div className="grid grid-cols-2 gap-5 mb-7">
+          <div>
+            <p className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-2">
+              Dietary
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {DIETARY_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setDietary(opt)}
+                  className={`px-3 py-1 rounded-full text-xs border transition-all ${
+                    dietary === opt
+                      ? "bg-gray-900 text-white border-gray-900"
+                      : "text-gray-500 border-gray-200 hover:border-gray-500"
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-2">
+              Time
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {TIME_OPTIONS.map((opt) => (
+                <button
+                  key={opt}
+                  onClick={() => setTimeLimit(opt)}
+                  className={`px-3 py-1 rounded-full text-xs border transition-all ${
+                    timeLimit === opt
+                      ? "bg-gray-900 text-white border-gray-900"
+                      : "text-gray-500 border-gray-200 hover:border-gray-500"
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
             </div>
           </div>
         </div>
-      </header>
-
-      <div className="max-w-2xl mx-auto px-4 mt-8 space-y-6">
-        {/* Ingredients Input */}
-        <section className="bg-white rounded-2xl shadow-sm border border-orange-100 p-5">
-          <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
-            🥕 What&apos;s in your fridge?
-          </label>
-          <textarea
-            className="w-full rounded-xl border-2 border-orange-200 focus:border-orange-400 focus:outline-none p-3 text-gray-800 resize-none text-base transition-colors"
-            rows={3}
-            placeholder="e.g. chicken, garlic, tomatoes, pasta, an egg that might be fine..."
-            value={ingredients}
-            onChange={(e) => setIngredients(e.target.value)}
-          />
-          <p className="text-xs text-gray-400 mt-1">Just list what you have — the gremlin handles the rest.</p>
-        </section>
-
-        {/* Dietary Preference */}
-        <section className="bg-white rounded-2xl shadow-sm border border-orange-100 p-5">
-          <p className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
-            🌿 Dietary preference
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {DIETARY_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => setDietary(opt)}
-                className={`px-4 py-1.5 rounded-full text-sm font-semibold border-2 transition-all ${
-                  dietary === opt
-                    ? "bg-orange-500 border-orange-500 text-white shadow-sm"
-                    : "bg-white border-orange-200 text-gray-600 hover:border-orange-400"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Time Limit */}
-        <section className="bg-white rounded-2xl shadow-sm border border-orange-100 p-5">
-          <p className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
-            ⏱️ How much time do you have?
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {TIME_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => setTimeLimit(opt)}
-                className={`px-4 py-1.5 rounded-full text-sm font-semibold border-2 transition-all ${
-                  timeLimit === opt
-                    ? "bg-orange-500 border-orange-500 text-white shadow-sm"
-                    : "bg-white border-orange-200 text-gray-600 hover:border-orange-400"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </section>
 
         {/* Error */}
         {error && (
-          <div className="bg-red-50 border-2 border-red-200 rounded-xl px-4 py-3 text-red-700 text-sm font-medium">
-            😬 {error}
-          </div>
+          <p className="text-xs text-red-400 mb-3">{error}</p>
         )}
 
-        {/* CTA Button */}
+        {/* CTA */}
         <button
           onClick={generateRecipe}
           disabled={loading}
-          className="w-full bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed text-white font-black text-xl py-4 rounded-2xl shadow-lg transition-all duration-150 tracking-tight"
+          className="w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-semibold tracking-wide hover:bg-gray-700 disabled:opacity-40 transition-all"
         >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="animate-spin-slow inline-block">🧌</span>
-              {loadingMessage}
-            </span>
-          ) : (
-            "DECIDE FOR ME →"
-          )}
+          {loading ? "Deciding..." : "Decide for me →"}
         </button>
 
         {/* Recipe Card */}
         {recipe && !loading && (
-          <div ref={recipeRef} className="animate-bounce-in">
-            <div className="bg-white rounded-2xl shadow-md border-2 border-orange-200 overflow-hidden">
-              {/* Recipe Header */}
-              <div className="bg-gradient-to-r from-orange-400 to-amber-400 px-6 py-5 text-white">
-                <div className="text-5xl mb-2">{recipe.emoji}</div>
-                <h2 className="text-2xl font-black tracking-tight">{recipe.name}</h2>
-                <p className="text-orange-50 mt-1 text-sm leading-relaxed">{recipe.description}</p>
-                <div className="flex gap-2 mt-3">
-                  <span className="bg-white/20 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    ⏱ {recipe.time}
-                  </span>
-                  <span
-                    className={`text-xs font-bold px-3 py-1 rounded-full ${
-                      DIFFICULTY_COLORS[recipe.difficulty] ?? "bg-white/20 text-white"
-                    }`}
-                  >
-                    {recipe.difficulty}
-                  </span>
+          <div className="mt-10 border border-gray-100 rounded-2xl overflow-hidden animate-fade-up">
+
+            {/* Top */}
+            <div className="px-6 pt-6 pb-5 border-b border-gray-100">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <span className="text-4xl leading-none">{recipe.emoji}</span>
+                  <h2 className="text-lg font-bold text-gray-900 mt-3 leading-snug">
+                    {recipe.name}
+                  </h2>
+                  <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                    {recipe.description}
+                  </p>
                 </div>
-              </div>
-
-              <div className="p-5 space-y-5">
-                {/* Matched Ingredients */}
-                {recipe.matched_ingredients?.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                      ✅ You already have
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {recipe.matched_ingredients.map((ing, i) => (
-                        <span
-                          key={i}
-                          className="bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-3 py-1 rounded-full"
-                        >
-                          {ing}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Extra Ingredients */}
-                {recipe.extra_ingredients?.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
-                      🛒 Grab these too
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {recipe.extra_ingredients.map((ing, i) => (
-                        <span
-                          key={i}
-                          className="bg-orange-50 border border-orange-200 text-orange-700 text-sm font-medium px-3 py-1 rounded-full"
-                        >
-                          {ing}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Steps */}
-                {recipe.steps?.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
-                      👨‍🍳 How to make it
-                    </p>
-                    <ol className="space-y-3">
-                      {recipe.steps.map((step, i) => (
-                        <li key={i} className="flex gap-3 text-sm text-gray-700 leading-relaxed">
-                          <span className="flex-shrink-0 w-6 h-6 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-xs font-black">
-                            {i + 1}
-                          </span>
-                          <span>{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-                {/* Gremlin Note */}
-                {recipe.gremlin_note && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-amber-800 text-sm italic">
-                    🧌 <em>{recipe.gremlin_note}</em>
-                  </div>
-                )}
+                <div className="flex-shrink-0 text-right space-y-1 pt-1">
+                  <p className="text-xs text-gray-400">{recipe.time}</p>
+                  <p className="text-xs text-gray-400">{recipe.difficulty}</p>
+                </div>
               </div>
             </div>
 
-            {/* Regenerate */}
-            <button
-              onClick={generateRecipe}
-              className="mt-4 w-full border-2 border-orange-300 hover:border-orange-500 hover:bg-orange-50 text-orange-600 font-bold text-base py-3 rounded-2xl transition-all duration-150"
-            >
-              😤 Nope, try again
-            </button>
+            {/* Body */}
+            <div className="px-6 py-5 space-y-6">
+
+              {/* You have */}
+              {recipe.matched_ingredients.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-2">
+                    You have
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recipe.matched_ingredients.map((ing, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 rounded-full text-xs bg-gray-900 text-white"
+                      >
+                        {ing}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* You'll need */}
+              {recipe.extra_ingredients.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-2">
+                    You'll need
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recipe.extra_ingredients.map((ing, i) => (
+                      <span
+                        key={i}
+                        className="px-3 py-1 rounded-full text-xs border border-gray-200 text-gray-500"
+                      >
+                        {ing}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Steps */}
+              <div>
+                <p className="text-xs font-semibold tracking-widest uppercase text-gray-400 mb-3">
+                  Steps
+                </p>
+                <ol className="space-y-3">
+                  {recipe.steps.map((step, i) => (
+                    <li key={i} className="flex gap-3 text-sm text-gray-700 leading-relaxed">
+                      <span className="text-xs font-bold text-gray-300 w-4 flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              {/* Gremlin note */}
+              {recipe.gremlin_note && (
+                <p className="text-xs text-gray-400 italic border-t border-gray-100 pt-4">
+                  🧌 {recipe.gremlin_note}
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 pb-6">
+              <button
+                onClick={generateRecipe}
+                className="w-full border border-gray-100 text-gray-400 text-xs py-2.5 rounded-xl hover:border-gray-300 hover:text-gray-700 transition-all"
+              >
+                Try a different one
+              </button>
+            </div>
           </div>
         )}
       </div>
