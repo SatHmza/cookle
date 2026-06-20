@@ -6,15 +6,15 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "Cookle 🧌 — What should I cook?",
+  title: "Cookle — What should I cook tonight?",
   description:
-    "Type in your ingredients and let the kitchen gremlin decide what you're cooking tonight.",
+    "Type in your ingredients and Cookle instantly decides what to cook. No scrolling, no browsing — just a decision.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geist.variable} h-full`}>
-      <body className="min-h-full bg-white font-sans antialiased">
+      <body className="min-h-full font-sans antialiased" style={{ backgroundColor: "#FDF8F3" }}>
         {children}
         <Analytics />
       </body>
