@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   title: "Cookle — What should I cook tonight?",
   description:
     "Type in your ingredients and Cookle instantly decides what to cook. No scrolling, no browsing — just a decision.",
+  twitter: {
+    card: "summary_large_image",
+    title: "Cookle — What should I cook tonight?",
+    description: "Type in your ingredients and Cookle instantly decides what to cook.",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
