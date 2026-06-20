@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧌 Cookle
+
+A fun, no-nonsense web app that solves the daily "what do I cook?" problem. Type in whatever ingredients you have, set a dietary preference and time limit, and Cookle instantly decides a recipe for you — no browsing, no scrolling, just a decision.
+
+## Features
+
+- **Ingredient matching** — type what you have and get the best-fit recipe from a curated database
+- **Dietary filters** — None, Vegetarian, Vegan, Gluten-free, Keto, Dairy-free, Halal
+- **Time filters** — 15 mins up to No limit
+- **Regenerate** — don't like the pick? Try a different one instantly
+- **Zero API costs** — fully local matching, no external AI calls
+- **Vercel Analytics** — built-in visitor tracking
+
+## Tech Stack
+
+- [Next.js 16](https://nextjs.org) (App Router)
+- [Tailwind CSS](https://tailwindcss.com)
+- [Vercel Analytics](https://vercel.com/analytics)
+- TypeScript
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+git clone https://github.com/SatHmza/cookle.git
+cd cookle
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deployed on [Vercel](https://vercel.com). Push to `main` and it auto-deploys. No environment variables required.
