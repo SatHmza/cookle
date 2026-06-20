@@ -84,7 +84,7 @@ export default function Home() {
         <div>
           {/* Header */}
           <div className="mb-10">
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">🧌 Cookle</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">🧌 <span className="text-orange-500">Cookle</span></h1>
             <p className="text-sm text-gray-400 mt-1">
               Tell it what you have. It tells you what to cook.
             </p>
@@ -106,7 +106,7 @@ export default function Home() {
                 }
               }}
               placeholder="chicken, garlic, tomatoes, pasta, an egg..."
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-gray-900 resize-none transition-colors"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-300 focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-100 resize-none transition-colors"
             />
           </div>
 
@@ -123,8 +123,8 @@ export default function Home() {
                     onClick={() => setDietary(opt)}
                     className={`px-3 py-1 rounded-full text-xs border transition-all ${
                       dietary === opt
-                        ? "bg-gray-900 text-white border-gray-900"
-                        : "text-gray-500 border-gray-200 hover:border-gray-500"
+                        ? "bg-orange-500 text-white border-orange-500"
+                        : "text-gray-500 border-gray-200 hover:border-orange-400 hover:text-orange-500"
                     }`}
                   >
                     {opt}
@@ -144,8 +144,8 @@ export default function Home() {
                     onClick={() => setTimeLimit(opt)}
                     className={`px-3 py-1 rounded-full text-xs border transition-all ${
                       timeLimit === opt
-                        ? "bg-gray-900 text-white border-gray-900"
-                        : "text-gray-500 border-gray-200 hover:border-gray-500"
+                        ? "bg-orange-500 text-white border-orange-500"
+                        : "text-gray-500 border-gray-200 hover:border-orange-400 hover:text-orange-500"
                     }`}
                   >
                     {opt}
@@ -161,7 +161,7 @@ export default function Home() {
           <button
             onClick={generateRecipe}
             disabled={loading}
-            className="w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-semibold tracking-wide hover:bg-gray-700 disabled:opacity-40 transition-all"
+            className="w-full bg-orange-500 text-white py-3 rounded-xl text-sm font-semibold tracking-wide hover:bg-orange-600 disabled:opacity-40 transition-all"
           >
             {loading ? "Deciding..." : "Decide for me →"}
           </button>
@@ -195,7 +195,7 @@ export default function Home() {
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {recipe.matched_ingredients.map((ing, i) => (
-                        <span key={i} className="px-3 py-1 rounded-full text-xs bg-gray-900 text-white">
+                        <span key={i} className="px-3 py-1 rounded-full text-xs bg-orange-500 text-white">
                           {ing}
                         </span>
                       ))}
@@ -225,7 +225,7 @@ export default function Home() {
                   <ol className="space-y-3">
                     {recipe.steps.map((step, i) => (
                       <li key={i} className="flex gap-3 text-sm text-gray-700 leading-relaxed">
-                        <span className="text-xs font-bold text-gray-300 w-4 flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-bold text-orange-300 w-4 flex-shrink-0 mt-0.5">
                           {i + 1}
                         </span>
                         <span>{step}</span>
@@ -244,7 +244,7 @@ export default function Home() {
               <div className="px-6 pb-6">
                 <button
                   onClick={generateRecipe}
-                  className="w-full border border-gray-100 text-gray-400 text-xs py-2.5 rounded-xl hover:border-gray-300 hover:text-gray-700 transition-all"
+                  className="w-full border border-orange-100 text-orange-400 text-xs py-2.5 rounded-xl hover:border-orange-300 hover:text-orange-600 transition-all"
                 >
                   Try a different one
                 </button>
@@ -263,7 +263,7 @@ export default function Home() {
                 <p className="text-xs font-semibold tracking-widest uppercase text-gray-400">
                   Recipe of the day
                 </p>
-                <span className="text-xs text-gray-300">
+                <span className="text-xs text-orange-400 font-medium">
                   {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
               </div>
@@ -287,7 +287,7 @@ export default function Home() {
 
                 <button
                   onClick={() => setShowDailySteps((v) => !v)}
-                  className="mt-3 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+                  className="mt-3 text-xs text-orange-400 hover:text-orange-600 transition-colors"
                 >
                   {showDailySteps ? "Hide steps ↑" : "Show steps ↓"}
                 </button>
@@ -296,7 +296,7 @@ export default function Home() {
                   <ol className="mt-3 space-y-2">
                     {dailyRecipe.steps.map((step, i) => (
                       <li key={i} className="flex gap-2 text-xs text-gray-600 leading-relaxed">
-                        <span className="font-bold text-gray-300 flex-shrink-0">{i + 1}</span>
+                        <span className="font-bold text-orange-300 flex-shrink-0">{i + 1}</span>
                         <span>{step}</span>
                       </li>
                     ))}
@@ -316,7 +316,7 @@ export default function Home() {
             <ul className="px-4 py-4 space-y-3">
               {dailyTips.map((tip, i) => (
                 <li key={i} className="flex gap-2.5 text-xs text-gray-500 leading-relaxed">
-                  <span className="text-gray-300 flex-shrink-0 font-bold">—</span>
+                  <span className="text-orange-300 flex-shrink-0 font-bold">—</span>
                   <span>{tip}</span>
                 </li>
               ))}
