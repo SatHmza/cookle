@@ -67,9 +67,8 @@ function LoadingScreen({ visible }: { visible: boolean }) {
       className="fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-700"
       style={{ backgroundColor: "var(--page-bg)", opacity: visible ? 1 : 0, pointerEvents: visible ? "auto" : "none" }}
     >
-      <div className="flex items-end justify-center gap-2 mb-2">
-        <span className="text-6xl select-none animate-fork inline-block">🍴</span>
-        <span className="text-6xl select-none animate-knife inline-block">🍴</span>
+      <div className="mb-2">
+        <span className="text-6xl select-none animate-cutlery inline-block">🍴</span>
       </div>
       <p className="mt-6 text-2xl font-bold text-orange-500 tracking-tight">Cookle</p>
       <p className="text-stone-400 text-sm mt-1">getting the kitchen ready…</p>

@@ -34,13 +34,9 @@ body {
 }
 
 /* ── Loading screen ─────────────────────────────────────── */
-@keyframes fork-swing {
-  0%, 100% { transform: rotate(-38deg); }
-  50%       { transform: rotate(-14deg); }
-}
-@keyframes knife-swing {
-  0%, 100% { transform: scaleX(-1) rotate(-38deg); }
-  50%       { transform: scaleX(-1) rotate(-14deg); }
+@keyframes cutlery-rock {
+  0%, 100% { transform: rotate(-10deg); }
+  50%       { transform: rotate(10deg); }
 }
 
 @keyframes loader-fade-out {
@@ -49,8 +45,7 @@ body {
   100% { opacity: 0; visibility: hidden; }
 }
 
-.animate-fork  { animation: fork-swing  1.1s ease-in-out infinite; transform-origin: bottom center; }
-.animate-knife { animation: knife-swing 1.1s ease-in-out infinite 0.08s; transform-origin: bottom center; }
+.animate-cutlery { animation: cutlery-rock 1.1s ease-in-out infinite; }
 
 /* ── Recipe card entrance ───────────────────────────────── */
 @keyframes fade-up {
