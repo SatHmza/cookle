@@ -17,8 +17,15 @@ export default function OgImage() {
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
-      {/* Fork and knife */}
-      <div style={{ fontSize: 180, lineHeight: 1 }}>🍴</div>
+      {/* Steam */}
+      <div style={{ display: "flex", gap: 20, marginBottom: 12, fontSize: 48, color: "#d6d3d1" }}>
+        <span>〜</span>
+        <span>〜</span>
+        <span>〜</span>
+      </div>
+
+      {/* Potato */}
+      <div style={{ fontSize: 180, lineHeight: 1 }}>🥔</div>
 
       {/* Title */}
       <div
