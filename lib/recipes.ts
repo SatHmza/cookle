@@ -9,6 +9,10 @@ export interface Recipe {
   extra_ingredients: string[];
   steps: string[];
   gremlin_note: string;
+  cuisine?: string;
+  level?: "Beginner" | "Intermediate" | "Pro";
+  servings?: number;
+  calories?: number;
 }
 
 export interface ResolvedRecipe {
@@ -21,6 +25,10 @@ export interface ResolvedRecipe {
   extra_ingredients: string[];
   steps: string[];
   gremlin_note: string;
+  cuisine?: string;
+  level?: string;
+  servings?: number;
+  calories?: number;
 }
 
 export const RECIPES: Recipe[] = [
@@ -1268,56 +1276,11 @@ function ingredientMatch(userIngredients: string[], recipeIngredients: string[])
   );
 }
 
-export function matchRecipe(
-  ingredients: string,
-  dietary: string,
-  timeLimit: string
-): ResolvedRecipe {
-  const userIngredients = ingredients
-    .toLowerCase()
-    .split(/[,\n]+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const maxTime = parseTimeLimit(timeLimit);
-  const dietaryTag = dietary.toLowerCase();
-
-  let candidates = RECIPES.filter((r) => {
-    const meetsTime = r.time <= maxTime;
-    const meetsDiet = dietary === "None" || r.dietary.includes(dietaryTag);
-    return meetsTime && meetsDiet;
-  });
-
-  // Relax time constraint if nothing matches
-  if (candidates.length === 0) {
-    candidates = RECIPES.filter(
-      (r) => dietary === "None" || r.dietary.includes(dietaryTag)
-    );
-  }
-
-  // Fallback: use everything
-  if (candidates.length === 0) candidates = RECIPES;
-
-  // Score each recipe by how many user ingredients match
-  const scored = candidates.map((r) => {
-    const matched = ingredientMatch(userIngredients, r.key_ingredients);
-    return { recipe: r, matched, score: matched.length };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-
-  // Pick randomly from top scorers for variety on regenerate
-  const topScore = scored[0].score;
-  const topCandidates = scored.filter((s) => s.score === topScore);
-  const chosen = topCandidates[Math.floor(Math.random() * topCandidates.length)];
-
-  const { recipe, matched } = chosen;
-
-  // Filter extra_ingredients to exclude what user already has
+export function resolveRecipe(recipe: Recipe, userIngredients: string[]): ResolvedRecipe {
+  const matched = ingredientMatch(userIngredients, recipe.key_ingredients);
   const filteredExtras = recipe.extra_ingredients.filter(
     (ei) => !ingredientMatch(userIngredients, [ei]).length
   );
-
   return {
     name: recipe.name,
     emoji: recipe.emoji,
@@ -1328,5 +1291,51 @@ export function matchRecipe(
     extra_ingredients: filteredExtras,
     steps: recipe.steps,
     gremlin_note: recipe.gremlin_note,
+    cuisine: recipe.cuisine,
+    level: recipe.level,
+    servings: recipe.servings,
+    calories: recipe.calories,
   };
+}
+
+export function matchRecipe(
+  ingredients: string,
+  dietary: string,
+  timeLimit: string,
+  level: string = "All",
+  pool: Recipe[] = RECIPES
+): ResolvedRecipe {
+  const userIngredients = ingredients
+    .toLowerCase()
+    .split(/[,\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const maxTime = parseTimeLimit(timeLimit);
+  const dietaryTag = dietary.toLowerCase();
+
+  let candidates = pool.filter((r) => {
+    const meetsTime = r.time <= maxTime;
+    const meetsDiet = dietary === "None" || r.dietary.includes(dietaryTag);
+    const meetsLevel = level === "All" || r.level === level || !r.level;
+    return meetsTime && meetsDiet && meetsLevel;
+  });
+
+  if (candidates.length === 0) {
+    candidates = pool.filter((r) => dietary === "None" || r.dietary.includes(dietaryTag));
+  }
+  if (candidates.length === 0) candidates = pool;
+
+  const scored = candidates.map((r) => {
+    const matched = ingredientMatch(userIngredients, r.key_ingredients);
+    return { recipe: r, matched, score: matched.length };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const topScore = scored[0].score;
+  const topCandidates = scored.filter((s) => s.score === topScore);
+  const { recipe } = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+
+  return resolveRecipe(recipe, userIngredients);
 }
