@@ -1266,13 +1266,19 @@ function parseTimeLimit(timeLimit: string): number {
   return Infinity;
 }
 
+function wordsMatch(a: string, b: string): boolean {
+  // "egg" should NOT match "eggplant". Requires whole-word overlap.
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // a as a whole word inside b, or b as a whole word inside a, allowing optional trailing 's'
+  return (
+    new RegExp(`\\b${esc(a)}s?\\b`).test(b) ||
+    new RegExp(`\\b${esc(b)}s?\\b`).test(a)
+  );
+}
+
 function ingredientMatch(userIngredients: string[], recipeIngredients: string[]): string[] {
   return recipeIngredients.filter((ri) =>
-    userIngredients.some((ui) => {
-      const a = ui.toLowerCase();
-      const b = ri.toLowerCase();
-      return a.includes(b) || b.includes(a);
-    })
+    userIngredients.some((ui) => wordsMatch(ui.toLowerCase().trim(), ri.toLowerCase().trim()))
   );
 }
 
