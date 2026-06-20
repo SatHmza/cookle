@@ -17,15 +17,11 @@ export default function OgImage() {
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
-      {/* Steam */}
-      <div style={{ display: "flex", gap: 20, marginBottom: 12, fontSize: 48, color: "#d6d3d1" }}>
-        <span>〜</span>
-        <span>〜</span>
-        <span>〜</span>
+      {/* Fork and knife crossed */}
+      <div style={{ display: "flex", gap: 0, alignItems: "flex-end", justifyContent: "center" }}>
+        <div style={{ fontSize: 160, lineHeight: 1, transform: "rotate(-30deg)", transformOrigin: "bottom center", display: "flex" }}>🍴</div>
+        <div style={{ fontSize: 160, lineHeight: 1, transform: "scaleX(-1) rotate(-30deg)", transformOrigin: "bottom center", display: "flex", marginLeft: -16 }}>🍴</div>
       </div>
-
-      {/* Potato */}
-      <div style={{ fontSize: 180, lineHeight: 1 }}>🥔</div>
 
       {/* Title */}
       <div
