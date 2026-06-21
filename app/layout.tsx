@@ -14,6 +14,7 @@ export const metadata: Metadata = {
     title: "Cookle — What should I cook tonight?",
     description: "Type in your ingredients and Cookle instantly decides what to cook.",
   },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

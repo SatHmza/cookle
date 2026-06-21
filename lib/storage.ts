@@ -107,6 +107,86 @@ export function saveDarkMode(dark: boolean): void {
   try { localStorage.setItem("cookle_dark", dark ? "1" : "0"); } catch {}
 }
 
+// ── Cook history ───────────────────────────────────────────────────────────
+
+export function getCookHistory(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem("cookle_history") || "{}"); }
+  catch { return {}; }
+}
+
+export function recordCooked(name: string): number {
+  try {
+    const h = getCookHistory();
+    h[name] = (h[name] ?? 0) + 1;
+    localStorage.setItem("cookle_history", JSON.stringify(h));
+    return h[name];
+  } catch { return 1; }
+}
+
+// ── Recipe notes ───────────────────────────────────────────────────────────
+
+export function getNote(name: string): string {
+  if (typeof window === "undefined") return "";
+  try { return JSON.parse(localStorage.getItem("cookle_notes") || "{}")[name] ?? ""; }
+  catch { return ""; }
+}
+
+export function setNote(name: string, note: string): void {
+  try {
+    const notes = JSON.parse(localStorage.getItem("cookle_notes") || "{}");
+    if (note.trim()) notes[name] = note;
+    else delete notes[name];
+    localStorage.setItem("cookle_notes", JSON.stringify(notes));
+  } catch {}
+}
+
+// ── Shopping list ──────────────────────────────────────────────────────────
+
+export function getShoppingList(): string[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem("cookle_shopping") || "[]"); }
+  catch { return []; }
+}
+
+export function addToShoppingList(items: string[]): void {
+  try {
+    const list = getShoppingList();
+    const merged = [...list, ...items.filter(i => !list.includes(i))];
+    localStorage.setItem("cookle_shopping", JSON.stringify(merged));
+  } catch {}
+}
+
+export function removeFromShoppingList(item: string): void {
+  try {
+    const list = getShoppingList().filter(i => i !== item);
+    localStorage.setItem("cookle_shopping", JSON.stringify(list));
+    const checked = getCheckedShoppingItems().filter(i => i !== item);
+    localStorage.setItem("cookle_shopping_checked", JSON.stringify(checked));
+  } catch {}
+}
+
+export function clearShoppingList(): void {
+  try {
+    localStorage.removeItem("cookle_shopping");
+    localStorage.removeItem("cookle_shopping_checked");
+  } catch {}
+}
+
+export function getCheckedShoppingItems(): string[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem("cookle_shopping_checked") || "[]"); }
+  catch { return []; }
+}
+
+export function toggleCheckedItem(item: string): void {
+  try {
+    const checked = getCheckedShoppingItems();
+    const next = checked.includes(item) ? checked.filter(i => i !== item) : [...checked, item];
+    localStorage.setItem("cookle_shopping_checked", JSON.stringify(next));
+  } catch {}
+}
+
 // ── Surprise Me rotation ───────────────────────────────────────────────────
 
 function shuffle(n: number): number[] {

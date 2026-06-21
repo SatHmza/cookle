@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { matchRecipe, resolveRecipe, RECIPES } from "@/lib/recipes";
+import { matchRecipe, resolveRecipe, RECIPES, scaleStep, extractTimeMins } from "@/lib/recipes";
 import { CUISINE_RECIPES } from "@/lib/cuisine-recipes";
+import { CUISINE_RECIPES_2 } from "@/lib/cuisine-recipes-2";
 import type { ResolvedRecipe, Recipe } from "@/lib/recipes";
 import { INGREDIENT_SWAPS } from "@/lib/swaps";
 import { NUTRITION } from "@/lib/nutrition";
+import { COSTS } from "@/lib/costs";
 import {
   getSavedRecipes, saveRecipe, unsaveRecipe, isRecipeSaved,
   getRatings, setRating,
@@ -14,10 +16,15 @@ import {
   getNextSurpriseIndex,
   getRecentRecipes, addRecentRecipe,
   getDarkMode, saveDarkMode,
+  getCookHistory, recordCooked,
+  getNote, setNote,
+  getShoppingList, addToShoppingList, removeFromShoppingList,
+  clearShoppingList, getCheckedShoppingItems, toggleCheckedItem,
 } from "@/lib/storage";
 
-const ALL_RECIPES: Recipe[] = [...RECIPES, ...CUISINE_RECIPES];
-const CUISINES = ["All", "Italian", "Moroccan"];
+const ALL_RECIPES: Recipe[] = [...RECIPES, ...CUISINE_RECIPES, ...CUISINE_RECIPES_2];
+const CUISINES = ["All", "Italian", "Moroccan", "Japanese", "Mexican", "Indian", "Thai"];
+const COST_OPTIONS = ["All", "$", "$$", "$$$"];
 const DIETARY_OPTIONS = ["None", "Vegetarian", "Vegan", "Gluten-free", "Keto", "Dairy-free", "Halal"];
 const TIME_OPTIONS = ["15 mins", "30 mins", "45 mins", "1 hour", "No limit"];
 const LEVEL_OPTIONS = ["All", "Beginner", "Intermediate", "Pro"];
@@ -51,6 +58,12 @@ const COOKING_TIPS = [
 
 function getDayIndex() { return Math.floor(Date.now() / 86400000); }
 
+function fmtTime(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function findSwap(ingredient: string): string | null {
   const key = ingredient.toLowerCase();
   for (const [k, v] of Object.entries(INGREDIENT_SWAPS)) {
@@ -58,8 +71,6 @@ function findSwap(ingredient: string): string | null {
   }
   return null;
 }
-
-// ── Loading screen ───────────────────────────────────────────────────────────
 
 function LoadingScreen({ visible }: { visible: boolean }) {
   return (
@@ -81,8 +92,6 @@ function LoadingScreen({ visible }: { visible: boolean }) {
   );
 }
 
-// ── Chip ─────────────────────────────────────────────────────────────────────
-
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
@@ -98,33 +107,39 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
   );
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
-
 export default function Home() {
-  const [appReady, setAppReady]           = useState(false);
-  const [darkMode, setDarkMode]           = useState(false);
-  const [ingredients, setIngredients]     = useState("");
-  const [pantryOnly, setPantryOnly]       = useState(false);
-  const [dietary, setDietary]             = useState("None");
-  const [timeLimit, setTimeLimit]         = useState("30 mins");
-  const [cuisine, setCuisine]             = useState("All");
-  const [level, setLevel]                 = useState("All");
-  const [challenge, setChallenge]         = useState(false);
-  const [servings, setServings]           = useState(2);
-  const [recipe, setRecipe]               = useState<ResolvedRecipe | null>(null);
-  const [loading, setLoading]             = useState(false);
-  const [error, setError]                 = useState<string | null>(null);
-  const [showFavorites, setShowFavorites] = useState(false);
-  const [showPantry, setShowPantry]       = useState(false);
-  const [pantryInput, setPantryInput]     = useState("");
-  const [pantryStaples, setPantryState]   = useState<string[]>([]);
-  const [savedRecipes, setSavedState]     = useState<ResolvedRecipe[]>([]);
-  const [ratings, setRatingsState]        = useState<Record<string, "up" | "down">>({});
-  const [streak, setStreak]               = useState(0);
-  const [showDailySteps, setShowDailySteps] = useState(false);
-  const [dayIndex, setDayIndex]           = useState(0);
-  const [copied, setCopied]               = useState(false);
-  const [recentRecipes, setRecentState]   = useState<ResolvedRecipe[]>([]);
+  const [appReady, setAppReady]               = useState(false);
+  const [darkMode, setDarkMode]               = useState(false);
+  const [ingredients, setIngredients]         = useState("");
+  const [pantryOnly, setPantryOnly]           = useState(false);
+  const [dietary, setDietary]                 = useState("None");
+  const [timeLimit, setTimeLimit]             = useState("30 mins");
+  const [cuisine, setCuisine]                 = useState("All");
+  const [level, setLevel]                     = useState("All");
+  const [costFilter, setCostFilter]           = useState("All");
+  const [challenge, setChallenge]             = useState(false);
+  const [servings, setServings]               = useState(2);
+  const [recipe, setRecipe]                   = useState<ResolvedRecipe | null>(null);
+  const [loading, setLoading]                 = useState(false);
+  const [error, setError]                     = useState<string | null>(null);
+  const [showFavorites, setShowFavorites]     = useState(false);
+  const [showPantry, setShowPantry]           = useState(false);
+  const [pantryInput, setPantryInput]         = useState("");
+  const [pantryStaples, setPantryState]       = useState<string[]>([]);
+  const [savedRecipes, setSavedState]         = useState<ResolvedRecipe[]>([]);
+  const [ratings, setRatingsState]            = useState<Record<string, "up" | "down">>({});
+  const [streak, setStreak]                   = useState(0);
+  const [showDailySteps, setShowDailySteps]   = useState(false);
+  const [dayIndex, setDayIndex]               = useState(0);
+  const [copied, setCopied]                   = useState(false);
+  const [recentRecipes, setRecentState]       = useState<ResolvedRecipe[]>([]);
+  const [completedSteps, setCompletedSteps]   = useState<number[]>([]);
+  const [timer, setTimer]                     = useState<{ stepIndex: number; secsLeft: number; running: boolean } | null>(null);
+  const [note, setNoteState]                  = useState("");
+  const [cookHistory, setCookHistory]         = useState<Record<string, number>>({});
+  const [shoppingList, setShoppingListState]  = useState<string[]>([]);
+  const [checkedItems, setCheckedItemsState]  = useState<string[]>([]);
+  const [showShopping, setShowShopping]       = useState(false);
 
   useEffect(() => {
     const dm = getDarkMode();
@@ -136,9 +151,24 @@ export default function Home() {
     setRatingsState(getRatings());
     setStreak(getStreak());
     setRecentState(getRecentRecipes());
+    setCookHistory(getCookHistory());
+    setShoppingListState(getShoppingList());
+    setCheckedItemsState(getCheckedShoppingItems());
     const t = setTimeout(() => setAppReady(true), 1600);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    if (!timer?.running) return;
+    const id = setInterval(() => {
+      setTimer(t => {
+        if (!t) return null;
+        if (t.secsLeft <= 1) return { ...t, secsLeft: 0, running: false };
+        return { ...t, secsLeft: t.secsLeft - 1 };
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [timer?.running, timer?.stepIndex]);
 
   function toggleDark() {
     const next = !darkMode;
@@ -151,7 +181,9 @@ export default function Home() {
   const dailyTips   = [0, 1, 2, 3].map(i => COOKING_TIPS[(dayIndex + i) % COOKING_TIPS.length]);
 
   function getPool() {
-    return cuisine === "All" ? ALL_RECIPES : ALL_RECIPES.filter(r => r.cuisine === cuisine);
+    let pool = cuisine === "All" ? ALL_RECIPES : ALL_RECIPES.filter(r => r.cuisine === cuisine);
+    if (costFilter !== "All") pool = pool.filter(r => COSTS[r.name] === costFilter);
+    return pool;
   }
 
   function handleIngredientChange(val: string) {
@@ -165,11 +197,17 @@ export default function Home() {
   function pushRecipe(result: ResolvedRecipe) {
     setRecipe(result);
     setServings(result.servings ?? 2);
+    setCompletedSteps([]);
+    setTimer(null);
     addRecentRecipe(result);
     setRecentState(getRecentRecipes());
     setStreak(markCookedToday());
     setSavedState(getSavedRecipes());
     setRatingsState(getRatings());
+    const prevHistory = getCookHistory();
+    recordCooked(result.name);
+    setCookHistory({ ...prevHistory, [result.name]: (prevHistory[result.name] ?? 0) + 1 });
+    setNoteState(getNote(result.name));
   }
 
   async function generate(ing?: string) {
@@ -231,11 +269,55 @@ export default function Home() {
     }
   }
 
+  function toggleStep(i: number) {
+    setCompletedSteps(prev => prev.includes(i) ? prev.filter(n => n !== i) : [...prev, i]);
+  }
+
+  function startTimer(stepIndex: number, mins: number) {
+    setTimer({ stepIndex, secsLeft: mins * 60, running: true });
+  }
+
+  function stopTimer() { setTimer(null); }
+
+  function addAllToList() {
+    if (!recipe) return;
+    addToShoppingList(recipe.extra_ingredients);
+    setShoppingListState(getShoppingList());
+    setShowShopping(true);
+  }
+
+  function handleToggleCheck(item: string) {
+    toggleCheckedItem(item);
+    setCheckedItemsState(getCheckedShoppingItems());
+  }
+
+  function handleRemoveItem(item: string) {
+    removeFromShoppingList(item);
+    setShoppingListState(getShoppingList());
+    setCheckedItemsState(getCheckedShoppingItems());
+  }
+
+  function handleClearList() {
+    clearShoppingList();
+    setShoppingListState([]);
+    setCheckedItemsState([]);
+  }
+
+  function handleNote(val: string) {
+    setNoteState(val);
+    if (recipe) setNote(recipe.name, val);
+  }
+
   const isSaved         = recipe ? isRecipeSaved(recipe.name) : false;
   const currentRating   = recipe ? ratings[recipe.name] : undefined;
   const defaultServings = recipe?.servings ?? 2;
   const scale           = servings / defaultServings;
   const nutrition       = recipe ? NUTRITION[recipe.name] : null;
+  const cost            = recipe ? COSTS[recipe.name] : null;
+  const timesCooked     = recipe ? (cookHistory[recipe.name] ?? 0) : 0;
+  const matchScore      = recipe
+    ? { matched: recipe.matched_ingredients.length, total: recipe.key_count }
+    : null;
 
   const T = {
     primary:   "text-stone-800 dark:text-[#F5EEE6]",
@@ -247,7 +329,27 @@ export default function Home() {
     <>
       <LoadingScreen visible={!appReady} />
 
-      <main className="min-h-screen" style={{ backgroundColor: "var(--page-bg)" }}>
+      {/* Mobile sticky bottom bar */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-30 lg:hidden border-t border-orange-100 dark:border-[#3D2A1E] px-4 py-3 flex gap-3"
+        style={{ backgroundColor: "var(--page-bg)" }}
+      >
+        <button
+          onClick={() => generate()} disabled={loading}
+          className="flex-1 bg-orange-500 text-white py-2.5 rounded-xl text-sm font-bold tracking-wide hover:bg-orange-600 disabled:opacity-40 transition-all shadow-sm"
+        >
+          {loading ? "Deciding…" : "Decide for me →"}
+        </button>
+        <button
+          onClick={surpriseMe} disabled={loading}
+          className="px-4 py-2.5 border-2 border-orange-200 dark:border-[#3D2A1E] text-orange-500 rounded-xl text-sm font-bold hover:border-orange-500 disabled:opacity-40 transition-all"
+          style={{ backgroundColor: "var(--card-bg)" }}
+        >
+          🎲
+        </button>
+      </div>
+
+      <main className="min-h-screen pb-20 lg:pb-0" style={{ backgroundColor: "var(--page-bg)" }}>
         <div className="max-w-5xl mx-auto px-5 py-10 grid grid-cols-1 lg:grid-cols-[1fr_256px] gap-10">
 
           {/* ── LEFT ─────────────────────────────────────────────────────── */}
@@ -295,6 +397,14 @@ export default function Home() {
                 <p className={`text-[10px] font-bold tracking-widest uppercase mb-2 ${T.muted}`}>Cuisine</p>
                 <div className="flex flex-wrap gap-1.5">
                   {CUISINES.map(c => <Chip key={c} label={c} active={cuisine === c} onClick={() => setCuisine(c)} />)}
+                </div>
+              </div>
+
+              {/* Budget */}
+              <div className="mb-4">
+                <p className={`text-[10px] font-bold tracking-widest uppercase mb-2 ${T.muted}`}>Budget</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {COST_OPTIONS.map(c => <Chip key={c} label={c} active={costFilter === c} onClick={() => setCostFilter(c)} />)}
                 </div>
               </div>
 
@@ -382,8 +492,8 @@ export default function Home() {
 
             {error && <p className="text-xs text-red-400 mb-3 px-1">{error}</p>}
 
-            {/* CTA buttons */}
-            <div className="flex gap-3 mb-6">
+            {/* CTA buttons — desktop only; mobile uses sticky bar */}
+            <div className="hidden lg:flex gap-3 mb-6">
               <button
                 onClick={() => generate()} disabled={loading}
                 className="flex-1 bg-orange-500 text-white py-3 rounded-xl text-sm font-bold tracking-wide hover:bg-orange-600 disabled:opacity-40 transition-all shadow-sm"
@@ -398,6 +508,7 @@ export default function Home() {
                 🎲 Surprise me
               </button>
             </div>
+            <div className="lg:hidden mb-4" />
 
             {/* Recently viewed */}
             {recentRecipes.length > 0 && (
@@ -407,7 +518,13 @@ export default function Home() {
                   {recentRecipes.map((r, i) => (
                     <button
                       key={i}
-                      onClick={() => { setRecipe(r); setServings(r.servings ?? 2); }}
+                      onClick={() => {
+                        setRecipe(r);
+                        setServings(r.servings ?? 2);
+                        setCompletedSteps([]);
+                        setTimer(null);
+                        setNoteState(getNote(r.name));
+                      }}
                       className="flex-shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-orange-100 dark:border-[#3D2A1E] shadow-sm hover:border-orange-400 transition-all text-left"
                       style={{ backgroundColor: "var(--card-bg)" }}
                     >
@@ -435,7 +552,14 @@ export default function Home() {
                     {savedRecipes.map((r, i) => (
                       <li
                         key={i}
-                        onClick={() => { setRecipe(r); setServings(r.servings ?? 2); setShowFavorites(false); }}
+                        onClick={() => {
+                          setRecipe(r);
+                          setServings(r.servings ?? 2);
+                          setCompletedSteps([]);
+                          setTimer(null);
+                          setNoteState(getNote(r.name));
+                          setShowFavorites(false);
+                        }}
                         className="px-5 py-3 flex items-center justify-between gap-3 border-b border-stone-50 dark:border-[#3D2A1E] last:border-0 hover:bg-orange-50 dark:hover:bg-[#2A1A0E] cursor-pointer transition-colors"
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -460,8 +584,19 @@ export default function Home() {
             {recipe && !loading && (
               <div className="rounded-2xl shadow-sm border border-orange-100 dark:border-[#3D2A1E] overflow-hidden animate-fade-up" style={{ backgroundColor: "var(--card-bg)" }}>
 
+                {/* Skip button */}
+                <div className="flex justify-end px-4 pt-3 pb-0">
+                  <button
+                    onClick={() => generate()}
+                    className={`text-[11px] font-semibold px-3 py-1 rounded-full border transition-all ${T.muted} border-stone-200 dark:border-[#3D2A1E] hover:border-orange-400 hover:text-orange-500`}
+                    style={{ backgroundColor: "var(--subtle-bg)" }}
+                  >
+                    Not this one →
+                  </button>
+                </div>
+
                 {/* Header */}
-                <div className="px-6 py-6 border-b border-stone-100 dark:border-[#3D2A1E]">
+                <div className="px-6 py-4 border-b border-stone-100 dark:border-[#3D2A1E]">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-3">
@@ -471,8 +606,33 @@ export default function Home() {
                             {recipe.cuisine}
                           </span>
                         )}
+                        {cost && (
+                          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${
+                            cost === "$"
+                              ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-[#0D1F0D] border-green-100 dark:border-[#1A3A1A]"
+                              : cost === "$$"
+                              ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-[#2A1A00] border-amber-100 dark:border-[#3D2800]"
+                              : "text-red-500 dark:text-red-400 bg-red-50 dark:bg-[#1F0D0D] border-red-100 dark:border-[#3D1A1A]"
+                          }`}>
+                            {cost}
+                          </span>
+                        )}
+                        {matchScore && matchScore.total > 0 && (
+                          <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                            matchScore.matched === matchScore.total
+                              ? "text-green-600 dark:text-green-400 bg-green-50 dark:bg-[#0D1F0D] border-green-100 dark:border-[#1A3A1A]"
+                              : "text-stone-500 dark:text-[#9A8578] bg-stone-50 dark:bg-[#2A1A0E] border-stone-200 dark:border-[#3D2A1E]"
+                          }`}>
+                            ✓ {matchScore.matched}/{matchScore.total}
+                          </span>
+                        )}
                       </div>
                       <h2 className={`text-xl font-bold leading-snug ${T.primary}`}>{recipe.name}</h2>
+                      {timesCooked > 0 && (
+                        <p className={`text-[11px] mt-0.5 ${T.muted}`}>
+                          {timesCooked === 1 ? "First time making this!" : `Made ${timesCooked} time${timesCooked > 1 ? "s" : ""}`}
+                        </p>
+                      )}
                       <p className={`text-sm mt-1.5 leading-relaxed ${T.secondary}`}>{recipe.description}</p>
                     </div>
                     <div className="flex-shrink-0 text-right space-y-1">
@@ -486,9 +646,9 @@ export default function Home() {
                   {nutrition && (
                     <div className="flex gap-2 mt-4 flex-wrap">
                       {[
-                        { label: "Protein", value: nutrition.protein, cls: "text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-[#0D1A2A] border-blue-100 dark:border-[#1A2E40]" },
-                        { label: "Carbs",   value: nutrition.carbs,   cls: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-[#2A1A00] border-amber-100 dark:border-[#3D2800]" },
-                        { label: "Fat",     value: nutrition.fat,     cls: "text-green-600 dark:text-green-400 bg-green-50 dark:bg-[#0D1F0D] border-green-100 dark:border-[#1A3A1A]" },
+                        { label: "Protein", value: Math.round(nutrition.protein * scale), cls: "text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-[#0D1A2A] border-blue-100 dark:border-[#1A2E40]" },
+                        { label: "Carbs",   value: Math.round(nutrition.carbs * scale),   cls: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-[#2A1A00] border-amber-100 dark:border-[#3D2800]" },
+                        { label: "Fat",     value: Math.round(nutrition.fat * scale),     cls: "text-green-600 dark:text-green-400 bg-green-50 dark:bg-[#0D1F0D] border-green-100 dark:border-[#1A3A1A]" },
                       ].map(({ label, value, cls }) => (
                         <span key={label} className={`px-3 py-1 rounded-full text-xs font-semibold border ${cls}`}>
                           {value}g {label}
@@ -561,7 +721,15 @@ export default function Home() {
                   )}
                   {recipe.extra_ingredients.length > 0 && (
                     <div>
-                      <p className={`text-[10px] font-bold tracking-widest uppercase mb-2 ${T.muted}`}>You'll need</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className={`text-[10px] font-bold tracking-widest uppercase ${T.muted}`}>You'll need</p>
+                        <button
+                          onClick={addAllToList}
+                          className="text-[11px] text-orange-500 hover:text-orange-700 font-medium transition-colors"
+                        >
+                          + Add all to list
+                        </button>
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {recipe.extra_ingredients.map((ing, i) => {
                           const swap = findSwap(ing);
@@ -597,21 +765,78 @@ export default function Home() {
                 {/* Steps */}
                 <div className="px-6 py-5">
                   <p className={`text-[10px] font-bold tracking-widest uppercase mb-4 ${T.muted}`}>How to make it</p>
-                  <ol className="space-y-4">
-                    {recipe.steps.map((step, i) => (
-                      <li key={i} className="flex gap-4 text-sm leading-relaxed">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-100 dark:bg-[#2A1A0E] text-orange-500 text-xs font-bold flex items-center justify-center mt-0.5">
-                          {i + 1}
-                        </span>
-                        <span className={T.secondary}>{step}</span>
-                      </li>
-                    ))}
+
+                  {/* Active timer banner */}
+                  {timer && (
+                    <div className={`mb-4 flex items-center justify-between px-4 py-2.5 rounded-xl border ${
+                      timer.secsLeft === 0
+                        ? "bg-green-50 dark:bg-[#0D1F0D] border-green-200 dark:border-[#1A3A1A]"
+                        : "bg-orange-50 dark:bg-[#2A1A0E] border-orange-200 dark:border-[#3D2A1E]"
+                    }`}>
+                      <span className={`text-xs font-semibold ${timer.secsLeft === 0 ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}`}>
+                        {timer.secsLeft === 0 ? "✓ Timer done!" : `⏱ Step ${timer.stepIndex + 1} — ${fmtTime(timer.secsLeft)}`}
+                      </span>
+                      <button onClick={stopTimer} className={`text-[11px] ${T.muted} hover:text-red-400 transition-colors`}>✕</button>
+                    </div>
+                  )}
+
+                  <ol className="space-y-3">
+                    {recipe.steps.map((step, i) => {
+                      const stepText = scaleStep(step, scale);
+                      const mins = extractTimeMins(step);
+                      const done = completedSteps.includes(i);
+                      const isTimerStep = timer?.stepIndex === i;
+                      return (
+                        <li key={i} className={`flex gap-4 text-sm leading-relaxed transition-opacity ${done ? "opacity-40" : ""}`}>
+                          <button
+                            onClick={() => toggleStep(i)}
+                            className={`flex-shrink-0 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center mt-0.5 transition-all border ${
+                              done
+                                ? "bg-orange-500 text-white border-orange-500"
+                                : "bg-orange-100 dark:bg-[#2A1A0E] text-orange-500 border-transparent hover:border-orange-300"
+                            }`}
+                          >
+                            {done ? "✓" : i + 1}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <span className={`${T.secondary} ${done ? "line-through" : ""}`}>{stepText}</span>
+                            {mins !== null && (
+                              <button
+                                onClick={() => isTimerStep && timer?.running ? stopTimer() : startTimer(i, mins)}
+                                className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-all ${
+                                  isTimerStep
+                                    ? "bg-orange-500 text-white border-orange-500"
+                                    : "text-orange-500 border-orange-200 dark:border-[#3D2A1E] hover:border-orange-400"
+                                }`}
+                                style={isTimerStep ? {} : { backgroundColor: "var(--orange-tint)" }}
+                              >
+                                ⏱ {isTimerStep && timer ? fmtTime(timer.secsLeft) : `${mins}m`}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ol>
+
                   {recipe.gremlin_note && (
                     <div className="mt-6 pt-5 border-t border-stone-100 dark:border-[#3D2A1E]">
                       <p className={`text-xs italic leading-relaxed ${T.muted}`}>🧌 {recipe.gremlin_note}</p>
                     </div>
                   )}
+
+                  {/* Recipe notes */}
+                  <div className="mt-5 pt-5 border-t border-stone-100 dark:border-[#3D2A1E]">
+                    <p className={`text-[10px] font-bold tracking-widest uppercase mb-2 ${T.muted}`}>My notes</p>
+                    <textarea
+                      rows={2}
+                      value={note}
+                      onChange={e => handleNote(e.target.value)}
+                      placeholder="Add a personal note about this recipe…"
+                      className={`w-full border border-stone-200 dark:border-[#3D2A1E] rounded-xl px-3 py-2 text-xs placeholder-stone-300 dark:placeholder-[#5A4438] focus:outline-none focus:border-orange-400 resize-none ${T.primary}`}
+                      style={{ backgroundColor: "var(--subtle-bg)" }}
+                    />
+                  </div>
                 </div>
 
                 <div className="px-6 pb-6">
@@ -629,6 +854,56 @@ export default function Home() {
 
           {/* ── SIDEBAR ──────────────────────────────────────────────────── */}
           <aside className="space-y-4 lg:pt-[108px]">
+
+            {/* Shopping list */}
+            <div className="rounded-2xl shadow-sm border border-orange-100 dark:border-[#3D2A1E] overflow-hidden" style={{ backgroundColor: "var(--card-bg)" }}>
+              <div className="px-4 py-3 border-b border-stone-100 dark:border-[#3D2A1E] flex items-center justify-between">
+                <button
+                  onClick={() => setShowShopping(v => !v)}
+                  className={`text-[10px] font-bold tracking-widest uppercase flex items-center gap-1.5 ${T.muted}`}
+                >
+                  🛒 Shopping{shoppingList.length > 0 ? ` (${shoppingList.length})` : ""}
+                  <span className="text-[9px]">{showShopping ? "▲" : "▼"}</span>
+                </button>
+                {shoppingList.length > 0 && (
+                  <button onClick={handleClearList} className="text-[11px] text-stone-400 hover:text-red-400 font-medium transition-colors">
+                    Clear
+                  </button>
+                )}
+              </div>
+              {showShopping && (
+                <div className="px-4 py-3">
+                  {shoppingList.length === 0 ? (
+                    <p className={`text-xs ${T.muted}`}>Tap "+ Add all to list" on a recipe to fill this up.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {shoppingList.map((item, i) => {
+                        const checked = checkedItems.includes(item);
+                        return (
+                          <li key={i} className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggleCheck(item)}
+                              className={`flex-shrink-0 w-4 h-4 rounded border transition-all ${
+                                checked
+                                  ? "bg-orange-500 border-orange-500"
+                                  : "border-stone-300 dark:border-[#5A4438] hover:border-orange-400"
+                              }`}
+                            >
+                              {checked && <span className="text-white text-[9px] flex items-center justify-center h-full">✓</span>}
+                            </button>
+                            <span className={`text-xs flex-1 ${checked ? `line-through ${T.muted}` : T.secondary}`}>{item}</span>
+                            <button
+                              onClick={() => handleRemoveItem(item)}
+                              className={`text-[10px] ${T.muted} hover:text-red-400 transition-colors`}
+                            >✕</button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Pantry */}
             <div className="rounded-2xl shadow-sm border border-orange-100 dark:border-[#3D2A1E] overflow-hidden" style={{ backgroundColor: "var(--card-bg)" }}>

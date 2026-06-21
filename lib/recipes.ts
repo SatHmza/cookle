@@ -23,6 +23,7 @@ export interface ResolvedRecipe {
   difficulty: string;
   matched_ingredients: string[];
   extra_ingredients: string[];
+  key_count: number;
   steps: string[];
   gremlin_note: string;
   cuisine?: string;
@@ -1295,6 +1296,7 @@ export function resolveRecipe(recipe: Recipe, userIngredients: string[]): Resolv
     difficulty: recipe.difficulty,
     matched_ingredients: matched,
     extra_ingredients: filteredExtras,
+    key_count: recipe.key_ingredients.length,
     steps: recipe.steps,
     gremlin_note: recipe.gremlin_note,
     cuisine: recipe.cuisine,
@@ -1344,4 +1346,30 @@ export function matchRecipe(
   const { recipe } = topCandidates[Math.floor(Math.random() * topCandidates.length)];
 
   return resolveRecipe(recipe, userIngredients);
+}
+
+// ── Quantity scaling ────────────────────────────────────────────────────────
+
+export function scaleStep(step: string, scale: number): string {
+  if (Math.abs(scale - 1) < 0.05) return step;
+  return step.replace(
+    /\b(\d+(?:\.\d+)?)\s*(g|kg|ml|l\b|oz|lbs?|cups?|tbsp|tsp|tablespoons?|teaspoons?|cloves?|pieces?|slices?|handfuls?)\b/gi,
+    (_, num, unit) => {
+      const scaled = parseFloat(num) * scale;
+      const rounded = Math.round(scaled * 10) / 10;
+      return `${Number.isInteger(rounded) ? rounded : rounded} ${unit}`;
+    }
+  );
+}
+
+// ── Step timer extraction ───────────────────────────────────────────────────
+
+export function extractTimeMins(step: string): number | null {
+  const hourMatch = step.match(/(\d+)\s*(?:to\s*\d+\s*)?hours?/i);
+  const minMatch  = step.match(/(\d+)\s*(?:to\s*\d+\s*)?mins?(?:utes?)?/i);
+  if (!hourMatch && !minMatch) return null;
+  let total = 0;
+  if (hourMatch) total += parseInt(hourMatch[1]) * 60;
+  if (minMatch)  total += parseInt(minMatch[1]);
+  return total > 0 && total <= 300 ? total : null;
 }
